@@ -46,9 +46,13 @@ _Note: If you're logged into Google, you will see your images._
 4) After opening the developer tools, click on the `Console` tab.
     ![Google Chrome Console on Google Photos page](images/chrome-console.jpg)
     
-    ```Note: _This console lets you run custom code, like this tool! You can learn about it on [Google Console page](https://developers.google.com/web/tools/chrome-devtools/console/)_.
+    ```
+    Note: _This console lets you run custom code, like this tool! You can learn about it on [Google Console page](https://developers.google.com/web/tools/chrome-devtools/console/)_.
+    ```
     
-    You will see a warning from Google to stay cautious. If you run code in this console that's malicious, you could be hacked. Therefore, make sure that you only run the code that you understand.```
+    ```
+    You will see a warning from Google to stay cautious. If you run code in this console that's malicious, you could be hacked. Therefore, make sure that you only run the code that you understand.
+    ```
 
 5) Copy all the code in the called `delete_photos.js` and paste it in the console.
     ![The Code in Chrome Console](images/code-in-console.jpg)
