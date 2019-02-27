@@ -59,6 +59,17 @@ _Note: If you're logged into Google, you will see your images._
 
 6) Done! Now, you should see the script delete all your photos in the batch
 
+# Deleting albums
+1) Follow `Step 1`
+
+2) Go to your [albums](https://photos.google.com/albums) 
+
+3) Follow `Steps` 3 & 4
+
+4) Follow `Step 5` using `delete_albums.js` instead of `delete_photos.js`
+
+5) Wait for all albums to be deleted
+
 # Debugging
 
 The script may not work as expected in case your internet speed is considerably slow. In that case, you may want to increase the `DELETE_DELAY_CYCLE` by few thousands of milliseconds. This is to ensure that the page has refreshed before the tool tries to delete the images again.
