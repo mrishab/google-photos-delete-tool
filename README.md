@@ -54,7 +54,7 @@ _Note: If you're logged into Google, you will see your images._
     You will see a warning from Google to stay cautious. If you run code in this console that's malicious, you could be hacked. Therefore, make sure that you only run the code that you understand.
     ```
 
-5) Copy all the code in the called `delete_photos.js` and paste it in the console.
+5) Copy all the code in the file [delete_photos.js](https://github.com/mrishab/google-photos-delete-tool/blob/master/delete_photos.js) and paste it in the console.
     ![The Code in Chrome Console](images/code-in-console.jpg)
 
 6) Hit **ENTER** button after pasting the script in the console. The script will start running upon hitting ENTER key.
