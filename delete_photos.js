@@ -2,7 +2,7 @@
 const ELEMENT_SELECTORS = {
     checkboxClass: '.ckGgle',
     deleteButton: 'button[title="Delete"]',
-    confirmationButton: '#yDmH0d > div.llhEMd.iWO5td > div > div.g3VIld.V639qd.bvQPzd.oEOLpc.Up8vH.J9Nfi.A9Uzve.iWO5td > div.XfpsVe.J9fJmf > button.VfPpkd-LgbsSe.VfPpkd-LgbsSe-OWXEXe-k8QpJ.nCP5yc.DuMIQc.kHssdc.HvOprf'
+    confirmationButton: '#yDmH0d > div.llhEMd.iWO5td > div > div.g3VIld.V639qd.bvQPzd.oEOLpc.Up8vH.J9Nfi.A9Uzve.iWO5td > div.XfpsVe.J9fJmf > button.VfPpkd-LgbsSe.VfPpkd-LgbsSe-OWXEXe-k8QpJ.nCP5yc.kHssdc.HvOprf'
 }
 
 // Time Configuration (in milliseconds)
@@ -10,6 +10,8 @@ const TIME_CONFIG = {
     delete_cycle: 7000,
     press_button_delay: 1000
 };
+
+const MAX_RETRIES = 10;
 
 let imageCount = 0;
 
@@ -20,8 +22,13 @@ let buttons = {
 }
 
 let deleteTask = setInterval(() => {
+    let attemptCount = 1;
 
-    checkboxes = document.querySelectorAll(ELEMENT_SELECTORS['checkboxClass']);
+    do {
+        checkboxes = document.querySelectorAll(ELEMENT_SELECTORS['checkboxClass']);
+
+    } while (checkboxes.length <= 0 && attemptCount++ < MAX_RETRIES);
+
 
     if (checkboxes.length <= 0) {
         console.log("[INFO] No more images to delete.");
