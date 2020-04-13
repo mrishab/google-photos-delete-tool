@@ -1,3 +1,8 @@
+// How many photos to delete?
+// Put a number value, like this
+// const maxImageCount = 5896
+const maxImageCount = "ALL_PHOTOS";
+
 // Selector for Images and buttons
 const ELEMENT_SELECTORS = {
     checkboxClass: '.ckGgle',
@@ -43,6 +48,15 @@ let deleteTask = setInterval(() => {
         setTimeout(() => {
             buttons.confirmation_button = document.querySelector(ELEMENT_SELECTORS['confirmationButton']);
             buttons.confirmation_button.click();
+
+            console.log(`[INFO] ${imageCount}/${maxImageCount} Deleted`);
+            if (maxImageCount !== "ALL_PHOTOS" && imageCount >= parseInt(maxImageCount)) {
+                console.log(`${imageCount} photos deleted as requested`);
+                clearInterval(deleteTask);
+                console.log("[SUCCESS] Tool exited.");
+                return;
+            }
+
         }, TIME_CONFIG['press_button_delay']);
     }, TIME_CONFIG['press_button_delay']);
 }, TIME_CONFIG['delete_cycle']);

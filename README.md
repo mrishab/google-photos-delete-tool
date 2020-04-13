@@ -46,16 +46,14 @@ _Note: If you're logged into Google, you will see your images._
 4) After opening the developer tools, click on the `Console` tab.
     ![Google Chrome Console on Google Photos page](images/chrome-console.jpg)
     
-    ```
     Note: _This console lets you run custom code, like this tool! You can learn about it on [Google Console page](https://developers.google.com/web/tools/chrome-devtools/console/)_.
-    ```
     
-    ```
-    You will see a warning from Google to stay cautious. If you run code in this console that's malicious, you could be hacked. Therefore, make sure that you only run the code that you understand.
-    ```
+    *You will see a warning from Google to stay cautious. If you run code in this console that's malicious, you could be hacked. Therefore, make sure that you only run the code that you understand.*
 
-5) Copy all the code in the file [delete_photos.js](https://github.com/mrishab/google-photos-delete-tool/blob/master/delete_photos.js) and paste it in the console.
+5) Copy all the code in the file [delete_photos.js](delete_photos.js) and paste it in the console.
     ![The Code in Chrome Console](images/code-in-console.jpg)
+
+    Note: The script allows you to delete all photos or any number of photos. To delete a specific number of photos, change the value of `maxImageCount` as provided in the [example](delete_photos.js#L3).
 
 6) Hit **ENTER** button after pasting the script in the console. The script will start running upon hitting ENTER key.
 
