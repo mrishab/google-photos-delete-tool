@@ -16,6 +16,8 @@ const TIME_CONFIG = {
     press_button_delay: 1000
 };
 
+const MAX_RETRIES = 10;
+
 let imageCount = 0;
 
 let checkboxes;
@@ -25,8 +27,13 @@ let buttons = {
 }
 
 let deleteTask = setInterval(() => {
+    let attemptCount = 1;
 
-    checkboxes = document.querySelectorAll(ELEMENT_SELECTORS['checkboxClass']);
+    do {
+        checkboxes = document.querySelectorAll(ELEMENT_SELECTORS['checkboxClass']);
+
+    } while (checkboxes.length <= 0 && attemptCount++ < MAX_RETRIES);
+
 
     if (checkboxes.length <= 0) {
         console.log("[INFO] No more images to delete.");
