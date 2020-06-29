@@ -17,13 +17,26 @@ The manual steps assume that these steps are performed on the Google Chrome Brow
 
 ![Google Account Sign-in Page](images/google-signin-page.jpg)
 
-2) Go to [Google Photos](https://photos.google.com/).
+2) Go to [Google Photos](https://photos.google.com/)
 
 ![Google Photos Page](images/google-photos-page.jpg)
 
 _Note: If you're logged into Google, you will see your images._
 
-3) Open Developer Tools. You can do so by following either of the three options
+3) Disable image loading for Google Photos on your browser to avoid high cpu,ram and network usage
+    
+    - **On Chrome**
+        
+        1) Click on the site padlock ( the lock icon along the url bar) -> Site settings
+        
+        2) Block images in the Permissions for the website
+        
+        ![Google Chrome Right Click Pop-up Menu](images/image_block.png)
+        
+        3) Reload Google Photos
+        
+
+4) Open Developer Tools. You can do so by following either of the three options
 
     - **Keyboard Shortcut**
         
@@ -45,21 +58,21 @@ _Note: If you're logged into Google, you will see your images._
         
         ![Google Chrome Menu Developer Tools](images/chrome-menu-popup.jpg)
 
-4) After opening the developer tools, click on the `Console` tab.
+5) After opening the developer tools, click on the `Console` tab.
     ![Google Chrome Console on Google Photos page](images/chrome-console.jpg)
     
     Note: _This console lets you run custom code, like this tool! You can learn about it on [Google Console page](https://developers.google.com/web/tools/chrome-devtools/console/)_.
     
     *You will see a warning from Google to stay cautious. If you run code in this console that's malicious, you could be hacked. Therefore, make sure that you only run the code that you understand.*
 
-5) Copy all the code in the file [delete_photos.js](delete_photos.js) and paste it in the console.
+6) Copy all the code in the file [delete_photos.js](delete_photos.js) and paste it in the console.
     ![The Code in Chrome Console](images/code-in-console.jpg)
 
     Note: The script allows you to delete all photos or any number of photos. To delete a specific number of photos, change the value of `maxImageCount` as provided in the [example](delete_photos.js#L3).
 
-6) Hit **ENTER** button after pasting the script in the console. The script will start running upon hitting ENTER key.
+7) Hit **ENTER** button after pasting the script in the console. The script will start running upon hitting ENTER key.
 
-7) Done! Now, you should see the script delete all your photos in the batch
+8) Done! Now, you should see the script delete all your photos in the batch
 
 # Debugging
 
