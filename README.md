@@ -72,3 +72,7 @@ The script may not work as expected in case your internet speed is considerably 
 
 2) It stops after deleting some images.
     - Increase the `DELETE_DELAY_CYCLE` by thousands of milliseconds as described in the [Debugging section](#Debugging).
+
+3) There was a delay in loading images and the tool exited.
+    - In case this happens, you can simply paste the script again and hit enter. The script will continue doing the operation.
+    If you're using, you wouldn't have to copy and paste again. If you press the up arrow key, it will load the last command that you ran in the console. Hit ENTER key and the script will start again.
