@@ -7,7 +7,7 @@ Follow the step-by-step instructions below to run the tool.
 ## Prerequisites
 - A fairly recent version of a modern web browser. This script has not been tested with any browser other than Google Chrome `Version 71.0.3578.98`. You can [download the latest version of the Google Chrome browser here](https://www.google.com/chrome/). However, you can still use it with any modern browser, like, [Firefox](https://www.mozilla.org/en-US/firefox/download/thanks/) or [IE Edge](https://www.microsoft.com/en-ca/windows/microsoft-edge).
 
-- Set the language of your browser to English.
+- Set your [Google account default language](https://myaccount.google.com/language) to English.
 
 ## Assumptions
 The manual steps assume that these steps are performed on the Google Chrome Browser. If you're using a different browser, the steps still remain the same, however, the keyboard shortcuts or browser specific keywords may not be same for you, as described below.
