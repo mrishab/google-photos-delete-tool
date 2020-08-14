@@ -68,7 +68,7 @@ The script may not work as expected in case your internet speed is considerably 
 # FAQs
 
 1) It checks and unchecks the photos, but doesn't delete them.
-    - Set the browser Language to English and try again.
+    - Set your [Google account default language](https://myaccount.google.com/language) to English, refresh Google Photos to have it in english and try again.
 
 2) It stops after deleting some images.
     - Increase the `DELETE_DELAY_CYCLE` by thousands of milliseconds as described in the [Debugging section](#Debugging).
