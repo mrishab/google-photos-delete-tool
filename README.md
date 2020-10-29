@@ -7,7 +7,7 @@ Follow the step-by-step instructions below to run the tool.
 ## Prerequisites
 - A fairly recent version of a modern web browser. This script has not been tested with any browser other than Google Chrome `Version 71.0.3578.98`. You can [download the latest version of the Google Chrome browser here](https://www.google.com/chrome/). However, you can still use it with any modern browser, like, [Firefox](https://www.mozilla.org/en-US/firefox/download/thanks/) or [IE Edge](https://www.microsoft.com/en-ca/windows/microsoft-edge).
 
-- Set the language of your browser to English.
+- Use the [english language version of Google Photos](https://photos.google.com/?hl=en).
 
 ## Assumptions
 The manual steps assume that these steps are performed on the Google Chrome Browser. If you're using a different browser, the steps still remain the same, however, the keyboard shortcuts or browser specific keywords may not be same for you, as described below.
@@ -68,7 +68,7 @@ The script may not work as expected in case your internet speed is considerably 
 # FAQs
 
 1) It checks and unchecks the photos, but doesn't delete them.
-    - Set the browser Language to English and try again.
+    - Use the [english language version of Google Photos](https://photos.google.com/?hl=en) and run the tool again.
 
 2) It stops after deleting some images.
     - Increase the `DELETE_DELAY_CYCLE` by thousands of milliseconds as described in the [Debugging section](#Debugging).
