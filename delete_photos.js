@@ -6,8 +6,8 @@ const maxImageCount = "ALL_PHOTOS";
 // Selector for Images and buttons
 const ELEMENT_SELECTORS = {
     checkboxClass: '.ckGgle',
-    deleteButton: 'button[title="Delete"]',
-    confirmationButton: '#yDmH0d > div.llhEMd.iWO5td > div > div.g3VIld.V639qd.bvQPzd.oEOLpc.Up8vH.J9Nfi.A9Uzve.iWO5td > div.XfpsVe.J9fJmf > button.VfPpkd-LgbsSe.VfPpkd-LgbsSe-OWXEXe-k8QpJ.nCP5yc.kHssdc.HvOprf'
+    deleteButton: '#yDmH0d > c-wiz > c-wiz.QtDoYb.KWdEHf.u5a4d.g7of6e.maPcY > span > div.c9yG5b.txMZRd > div > div:nth-child(4) > button',
+    confirmationButton: '#yDmH0d > div.llhEMd.iWO5td > div > div.g3VIld.V639qd.bvQPzd.oEOLpc.Up8vH.J9Nfi.A9Uzve.iWO5td > div.XfpsVe.J9fJmf > button.VfPpkd-LgbsSe.VfPpkd-LgbsSe-OWXEXe-k8QpJ.nCP5yc.AjY5Oe.kHssdc.HvOprf > span'
 }
 
 // Time Configuration (in milliseconds)
