@@ -7,6 +7,8 @@ const maxImageCount = "ALL_PHOTOS";
 const ELEMENT_SELECTORS = {
     checkboxClass: '.ckGgle',
     deleteButton: 'button[aria-label="Delete"]',
+    languageAgnosticDeleteButton: 'div[data-delete-origin] > button',
+    deleteButton: 'button[aria-label="Delete"]',
     confirmationButton: '#yDmH0d > div.llhEMd.iWO5td > div > div.g3VIld.V639qd.bvQPzd.oEOLpc.Up8vH.J9Nfi.A9Uzve.iWO5td > div.XfpsVe.J9fJmf > button.VfPpkd-LgbsSe.VfPpkd-LgbsSe-OWXEXe-k8QpJ.nCP5yc.kHssdc.HvOprf'
 }
 
@@ -48,9 +50,13 @@ let deleteTask = setInterval(() => {
     console.log("[INFO] Deleting", checkboxes.length, "images");
 
     setTimeout(() => {
-
-        buttons.deleteButton = document.querySelector(ELEMENT_SELECTORS['deleteButton']);
-        buttons.deleteButton.click();
+        try {
+            buttons.deleteButton = document.querySelector(ELEMENT_SELECTORS['languageAgnosticDeleteButton']);
+            buttons.deleteButton.click();
+        } catch {
+            buttons.deleteButton = document.querySelector(ELEMENT_SELECTORS['deleteButton']);
+            buttons.deleteButton.click();
+        }
 
         setTimeout(() => {
             buttons.confirmation_button = document.querySelector(ELEMENT_SELECTORS['confirmationButton']);
