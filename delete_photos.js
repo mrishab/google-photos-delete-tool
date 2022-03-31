@@ -5,7 +5,7 @@ const maxImageCount = "ALL_PHOTOS";
 
 // Selector for Images and buttons
 const ELEMENT_SELECTORS = {
-    checkboxClass: '.ckGgle',
+    checkboxClass: '.QcpS9c.R4HkWb',
     deleteButton: 'button[aria-label="Delete"]',
     languageAgnosticDeleteButton: 'div[data-delete-origin] > button',
     deleteButton: 'button[aria-label="Delete"]',
@@ -47,7 +47,7 @@ let deleteTask = setInterval(() => {
     imageCount += checkboxes.length;
 
     checkboxes.forEach((checkbox) => { checkbox.click() });
-    console.log("[INFO] Deleting", checkboxes.length, "images");
+    console.log("[INFO] Deleting", checkboxes.length, "days of images");
 
     setTimeout(() => {
         try {
