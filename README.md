@@ -17,11 +17,12 @@ The manual steps assume that these steps are performed on the Google Chrome Brow
 
 ![Google Account Sign-in Page](images/google-signin-page.jpg)
 
-2) Go to [Google Photos](https://photos.google.com/)
+2) Go to [Google Photos](https://photos.google.com/?hl=en)
 
 ![Google Photos Page](images/google-photos-page.jpg)
 
 _Note: If you're logged into Google, you will see your images._
+_Note: You must login into English language version of Google Photo_
 
 3) Disable image loading for Google Photos on your browser to avoid high cpu,ram and network usage
     
