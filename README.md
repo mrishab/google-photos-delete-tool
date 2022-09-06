@@ -78,7 +78,7 @@ _Note: If you're logged into Google, you will see your images._
 
 Script selects and deletes photos in batches based on what can be seen in the browser at one time. To increase the amount of photos that can be seen at once, and therefore deleted per batch, zoom out.
 
-    - **Chrome on Windows**
+    - **Chrome on Windows and Linux**
 
         Control-Minus to zoom out.
 
