@@ -17,11 +17,12 @@ The manual steps assume that these steps are performed on the Google Chrome Brow
 
 ![Google Account Sign-in Page](images/google-signin-page.jpg)
 
-2) Go to [Google Photos](https://photos.google.com/)
+2) Go to [Google Photos](https://photos.google.com/?hl=en)
 
 ![Google Photos Page](images/google-photos-page.jpg)
 
 _Note: If you're logged into Google, you will see your images._
+_Note: You must login into English language version of Google Photo_
 
 3) Disable image loading for Google Photos on your browser to avoid high cpu,ram and network usage
 
@@ -99,5 +100,5 @@ The script may not work as expected in case your internet speed is considerably 
    - Increase the `DELETE_DELAY_CYCLE` by thousands of milliseconds as described in the [Debugging section](#Debugging).
 
 3) There was a delay in loading images and the tool exited.
-   - In case this happens, you can simply paste the script again and hit enter. The script will continue doing the operation.
-     If you're using, you wouldn't have to copy and paste again. If you press the up arrow key, it will load the last command that you ran in the console. Hit ENTER key and the script will start again.
+    - In case this happens, you can simply paste the script again and hit enter. The script will continue doing the operation.
+    If you're using, you wouldn't have to copy and paste again. If you press the up arrow key, it will load the last command that you ran in the console. Hit ENTER key and the script will start again.
