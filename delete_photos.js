@@ -11,8 +11,8 @@ const maxImageCount = "ALL_PHOTOS";
 
 // Selector for Images and buttons
 const ELEMENT_SELECTORS = {
-    // checkboxClass: '.ckGgle',		// Delete sets of photos at a time
-    checkboxClass: '.QcpS9c.R4HkWb', 	// Delete whole days at a time
+    checkboxClass: '.ckGgle',		// Delete sets of photos at a time
+    // checkboxClass: '.QcpS9c.R4HkWb', // Delete whole days at a time - Won't delete dates with only one image!
     languageAgnosticDeleteButton: 'div[data-delete-origin] button',
     deleteButton: 'button[aria-label="Delete"]',
     confirmationButton: '#yDmH0d > div.llhEMd.iWO5td > div > div.g3VIld.V639qd.bvQPzd.oEOLpc.Up8vH.J9Nfi.A9Uzve.iWO5td > div.XfpsVe.J9fJmf > button.VfPpkd-LgbsSe.VfPpkd-LgbsSe-OWXEXe-k8QpJ.nCP5yc.kHssdc.HvOprf'
