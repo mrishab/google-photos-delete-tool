@@ -1,3 +1,9 @@
+/* 
+Mass delete google photos
+Works best in Chrom(ium); Firefox works but can have loading issues and timing issues with HUGE photo sets. 
+https://github.com/mrishab/google-photos-delete-tool/
+*/
+
 // How many photos to delete?
 // Put a number value, like this
 // const maxImageCount = 5896
@@ -14,10 +20,14 @@ const ELEMENT_SELECTORS = {
 // Time Configuration (in milliseconds)
 const TIME_CONFIG = {
     delete_cycle: 10000,
-    press_button_delay: 2000
+    press_button_delay: 2000,
+   	check_sleep_delay: 200
 };
 
 const MAX_RETRIES = 10;
+
+// Force sleep a bit
+const sleep = ms => new Promise(r => setTimeout(r, ms));
 
 let imageCount = 0;
 
@@ -32,12 +42,12 @@ let deleteTask = setInterval(() => {
 
     do {
         checkboxes = document.querySelectorAll(ELEMENT_SELECTORS['checkboxClass']);
-
+		sleep(TIME_CONFIG['check_sleep_delay']); // Give a bit of extra time for the page to load more
     } while (checkboxes.length <= 0 && attemptCount++ < MAX_RETRIES);
-
 
     if (checkboxes.length <= 0) {
         console.log("[INFO] No more images to delete.");
+        // Comment out the next three lines if you have 10k+ photos and don't want to risk it quitting part way through
         clearInterval(deleteTask);
         console.log("[SUCCESS] Tool exited.");
         return;
