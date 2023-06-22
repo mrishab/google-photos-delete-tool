@@ -57,7 +57,7 @@ let deleteTask = setInterval(() => {
     imageCount += checkboxes.length;
 
     checkboxes.forEach((checkbox) => { checkbox.click() });
-    console.log("[INFO] Deleting", checkboxes.length, "images");
+    console.log("[INFO] Deleting", checkboxes.length, "images/sets");
 
     setTimeout(() => {
         try {
@@ -72,7 +72,7 @@ let deleteTask = setInterval(() => {
             buttons.confirmation_button = document.querySelector(ELEMENT_SELECTORS['confirmationButton']);
             buttons.confirmation_button.click();
 
-            console.log(`[INFO] ${imageCount}/${maxImageCount} Deleted`);
+            console.log(`[INFO] ${imageCount}/${maxImageCount} Images/Sets Deleted`);
             if (maxImageCount !== "ALL_PHOTOS" && imageCount >= parseInt(maxImageCount)) {
                 console.log(`${imageCount} photos deleted as requested`);
                 clearInterval(deleteTask);
