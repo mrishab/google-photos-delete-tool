@@ -4,7 +4,7 @@ Works best in Chrom(ium); Firefox works but can have loading issues and timing i
 https://github.com/mrishab/google-photos-delete-tool/
 */
 
-let deleteGooglePhotos = function(maxItemCount = "ALL_PHOTOS", itemUnit = "infinity") {
+let deleteGooglePhotos = async function(maxItemCount = "ALL_PHOTOS", itemUnit = "infinity") {
 
 	const CHECKBOX_CLASSES = {
 		days: '.QcpS9c.R4HkWb',	// Delete whole days at a time - Won't delete dates with only one image!
@@ -39,14 +39,14 @@ let deleteGooglePhotos = function(maxItemCount = "ALL_PHOTOS", itemUnit = "infin
 	    confirmationButton: null
 	}
 	
-	let deleteTask = setInterval(() => {
+	let deleteTask = setInterval(async function () => {
 	    let attemptCount = 1;
 	
 	    do {
 	        checkboxes = document.querySelectorAll(ELEMENT_SELECTORS['checkboxClass']);
 		 if (attemptCount > 1) {
 		     console.log("No checkboxes found; retrying, " + attemptCount + "/" + MAX_RETRIES);
-		     sleep(TIME_CONFIG['delete_cycle']); // Give a bit of extra time for the page to load more
+		     await sleep(TIME_CONFIG['delete_cycle']); // Give a bit of extra time for the page to load more
 		 }
 	    } while (checkboxes.length <= 0 && attemptCount++ < MAX_RETRIES);
 	
