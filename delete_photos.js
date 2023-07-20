@@ -19,7 +19,6 @@ let deleteGooglePhotos = function(maxImageCount = "ALL_PHOTOS") {
 	const TIME_CONFIG = {
 	    delete_cycle: 10000,
 	    press_button_delay: 2000,
-	   	check_sleep_delay: 200
 	};
 	
 	const MAX_RETRIES = 10;
@@ -40,7 +39,9 @@ let deleteGooglePhotos = function(maxImageCount = "ALL_PHOTOS") {
 	
 	    do {
 	        checkboxes = document.querySelectorAll(ELEMENT_SELECTORS['checkboxClass']);
-			sleep(TIME_CONFIG['check_sleep_delay']); // Give a bit of extra time for the page to load more
+		 if (attemptCount > 1) {
+		     sleep(TIME_CONFIG['delete_cycle']); // Give a bit of extra time for the page to load more
+		 }
 	    } while (checkboxes.length <= 0 && attemptCount++ < MAX_RETRIES);
 	
 	    if (checkboxes.length <= 0) {
@@ -82,7 +83,6 @@ let deleteGooglePhotos = function(maxImageCount = "ALL_PHOTOS") {
 	}, TIME_CONFIG['delete_cycle']);
 };
 
-// Do stuff
 // How many photos to delete?
 // Put a number value, like this
 //   deleteGooglePhotos(5896);
