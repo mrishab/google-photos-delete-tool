@@ -39,7 +39,7 @@ let deleteGooglePhotos = async function(maxItemCount = "ALL_PHOTOS", itemUnit = 
 	    confirmationButton: null
 	}
 	
-	let deleteTask = setInterval(async function () => {
+	let deleteTask = setInterval(async function () {
 	    let attemptCount = 1;
 	
 	    do {
