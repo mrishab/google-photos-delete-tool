@@ -4,12 +4,17 @@ Works best in Chrom(ium); Firefox works but can have loading issues and timing i
 https://github.com/mrishab/google-photos-delete-tool/
 */
 
-let deleteGooglePhotos = function(maxImageCount = "ALL_PHOTOS") {
+let deleteGooglePhotos = function(maxItemCount = "ALL_PHOTOS", itemUnit = "days") {
+
+	const CHECKBOX_CLASSES = {
+		days: '.QcpS9c.R4HkWb',	// Delete whole days at a time - Won't delete dates with only one image!
+		photos: '.ckGgle',		// Delete sets of photos at a time
+		infinity: '.ckGgle'		// Delete everything and do not exit: if you have 10k+ photos and don't want to risk it quitting part way through
+	}
 	
 	// Selector for Images and buttons
 	const ELEMENT_SELECTORS = {
-	    checkboxClass: '.ckGgle',		// Delete sets of photos at a time
-	    // checkboxClass: '.QcpS9c.R4HkWb', // Delete whole days at a time - Won't delete dates with only one image!
+	    checkboxClass: CHECKBOX_CLASSES[itemUnit], 
 	    languageAgnosticDeleteButton: 'div[data-delete-origin] button',
 	    deleteButton: 'button[aria-label="Delete"]',
 	    confirmationButton: '#yDmH0d > div.llhEMd.iWO5td > div > div.g3VIld.V639qd.bvQPzd.oEOLpc.Up8vH.J9Nfi.A9Uzve.iWO5td > div.XfpsVe.J9fJmf > button.VfPpkd-LgbsSe.VfPpkd-LgbsSe-OWXEXe-k8QpJ.nCP5yc.kHssdc.HvOprf'
@@ -47,10 +52,11 @@ let deleteGooglePhotos = function(maxImageCount = "ALL_PHOTOS") {
 	
 	    if (checkboxes.length <= 0) {
 	        console.log("[INFO] No more images to delete.");
-	        // Comment out the next three lines if you have 10k+ photos and don't want to risk it quitting part way through
-	        clearInterval(deleteTask);
-	        console.log("[SUCCESS] Tool exited.");
-	        return;
+		 if (itemUnit != "infinity") {
+		        clearInterval(deleteTask);
+		        console.log("[SUCCESS] Tool exited.");
+	       	 return;
+		 }
 	    }
 	
 	    imageCount += checkboxes.length;
@@ -71,8 +77,8 @@ let deleteGooglePhotos = function(maxImageCount = "ALL_PHOTOS") {
 	            buttons.confirmation_button = document.querySelector(ELEMENT_SELECTORS['confirmationButton']);
 	            buttons.confirmation_button.click();
 	
-	            console.log(`[INFO] ${imageCount}/${maxImageCount} Images/Sets Deleted`);
-	            if (maxImageCount !== "ALL_PHOTOS" && imageCount >= parseInt(maxImageCount)) {
+	            console.log(`[INFO] ${imageCount}/${maxItemCount} Images/Sets Deleted`);
+	            if (maxItemCount !== "ALL_PHOTOS" && imageCount >= parseInt(maxItemCount)) {
 	                console.log(`${imageCount} photos deleted as requested`);
 	                clearInterval(deleteTask);
 	                console.log("[SUCCESS] Tool exited.");
@@ -86,6 +92,6 @@ let deleteGooglePhotos = function(maxImageCount = "ALL_PHOTOS") {
 
 // How many photos to delete?
 // Put a number value, like this
-//   deleteGooglePhotos(5896);
-// If the argument is missing, we will delete all photos.
+//   deleteGooglePhotos(5896, "photos");
+// If the first argument is missing, we will delete all photos.
 deleteGooglePhotos(); // Rerun this line to start the program again
