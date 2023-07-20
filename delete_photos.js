@@ -4,7 +4,7 @@ Works best in Chrom(ium); Firefox works but can have loading issues and timing i
 https://github.com/mrishab/google-photos-delete-tool/
 */
 
-let deleteGooglePhotos = function(maxItemCount = "ALL_PHOTOS", itemUnit = "days") {
+let deleteGooglePhotos = function(maxItemCount = "ALL_PHOTOS", itemUnit = "infinity") {
 
 	const CHECKBOX_CLASSES = {
 		days: '.QcpS9c.R4HkWb',	// Delete whole days at a time - Won't delete dates with only one image!
