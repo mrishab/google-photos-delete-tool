@@ -40,6 +40,7 @@ let deleteGooglePhotos = function(maxImageCount = "ALL_PHOTOS") {
 	    do {
 	        checkboxes = document.querySelectorAll(ELEMENT_SELECTORS['checkboxClass']);
 		 if (attemptCount > 1) {
+		     console.log("No checkboxes found; retrying, " + attemptCount + "/" + MAX_RETRIES);
 		     sleep(TIME_CONFIG['delete_cycle']); // Give a bit of extra time for the page to load more
 		 }
 	    } while (checkboxes.length <= 0 && attemptCount++ < MAX_RETRIES);
