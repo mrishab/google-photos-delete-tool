@@ -4,7 +4,7 @@ Works best in Chrom(ium); Firefox works but can have loading issues and timing i
 https://github.com/mrishab/google-photos-delete-tool/
 */
 
-let deleteIt = function(maxImageCount = "ALL_PHOTOS") {
+let deleteGooglePhotos = function(maxImageCount = "ALL_PHOTOS") {
 	
 	// Selector for Images and buttons
 	const ELEMENT_SELECTORS = {
@@ -85,6 +85,6 @@ let deleteIt = function(maxImageCount = "ALL_PHOTOS") {
 // Do stuff
 // How many photos to delete?
 // Put a number value, like this
-//   deleteIt(5896);
+//   deleteGooglePhotos(5896);
 // If the argument is missing, we will delete all photos.
-deleteIt(); // Rerun this line to start the program again
+deleteGooglePhotos(); // Rerun this line to start the program again
