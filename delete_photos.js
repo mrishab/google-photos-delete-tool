@@ -17,7 +17,7 @@ const TIME_CONFIG = {
     press_button_delay: 2000
 };
 
-const MAX_RETRIES = 10;
+const MAX_RETRIES = 1000;
 
 let imageCount = 0;
 
@@ -27,12 +27,12 @@ let buttons = {
     confirmationButton: null
 }
 
-let deleteTask = setInterval(() => {
+let deleteTask = setInterval(async () => {
     let attemptCount = 1;
 
     do {
         checkboxes = document.querySelectorAll(ELEMENT_SELECTORS['checkboxClass']);
-
+        await new Promise(r => setTimeout(r, 1000));
     } while (checkboxes.length <= 0 && attemptCount++ < MAX_RETRIES);
 
 
@@ -43,6 +43,7 @@ let deleteTask = setInterval(() => {
         return;
     }
 
+    attemptCount = 1;
     imageCount += checkboxes.length;
 
     checkboxes.forEach((checkbox) => { checkbox.click() });
