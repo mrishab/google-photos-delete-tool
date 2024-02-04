@@ -13,11 +13,11 @@ const ELEMENT_SELECTORS = {
 
 // Time Configuration (in milliseconds)
 const TIME_CONFIG = {
-    delete_cycle: 10000,
-    press_button_delay: 2000
+    delete_cycle: 5000,
+    press_button_delay: 1000
 };
 
-const MAX_RETRIES = 10;
+const MAX_RETRIES = 1000;
 
 let imageCount = 0;
 
@@ -27,12 +27,12 @@ let buttons = {
     confirmationButton: null
 }
 
-let deleteTask = setInterval(() => {
+let deleteTask = setInterval(async () => {
     let attemptCount = 1;
 
     do {
         checkboxes = document.querySelectorAll(ELEMENT_SELECTORS['checkboxClass']);
-
+        await new Promise(r => setTimeout(r, 1000));
     } while (checkboxes.length <= 0 && attemptCount++ < MAX_RETRIES);
 
 
@@ -43,6 +43,7 @@ let deleteTask = setInterval(() => {
         return;
     }
 
+    attemptCount = 1;
     imageCount += checkboxes.length;
 
     checkboxes.forEach((checkbox) => { checkbox.click() });
@@ -56,19 +57,29 @@ let deleteTask = setInterval(() => {
             buttons.deleteButton = document.querySelector(ELEMENT_SELECTORS['deleteButton']);
             buttons.deleteButton.click();
         }
-
+    
         setTimeout(() => {
-            buttons.confirmation_button = document.querySelector(ELEMENT_SELECTORS['confirmationButton']);
-            buttons.confirmation_button.click();
-
-            console.log(`[INFO] ${imageCount}/${maxImageCount} Deleted`);
+            let confirmationButtons = document.querySelectorAll('button.VfPpkd-LgbsSe');
+            let found = false;
+            confirmationButtons.forEach(button => {
+            console.log(button)
+                let span = button.querySelector('span.VfPpkd-vQzf8d');
+                if (span && span.textContent === 'Move to trash') {
+                    button.click();
+                    found = true;
+                    console.log(`[INFO] ${imageCount}/${maxImageCount} Deleted`);
+                }
+            });
+            if (!found) {
+                console.log("[ERROR] Confirmation button not found.");
+            }
+    
             if (maxImageCount !== "ALL_PHOTOS" && imageCount >= parseInt(maxImageCount)) {
                 console.log(`${imageCount} photos deleted as requested`);
                 clearInterval(deleteTask);
                 console.log("[SUCCESS] Tool exited.");
                 return;
             }
-
         }, TIME_CONFIG['press_button_delay']);
     }, TIME_CONFIG['press_button_delay']);
-}, TIME_CONFIG['delete_cycle']);
+  }, TIME_CONFIG['delete_cycle']);
