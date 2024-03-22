@@ -57,19 +57,28 @@ let deleteTask = setInterval(async () => {
             buttons.deleteButton = document.querySelector(ELEMENT_SELECTORS['deleteButton']);
             buttons.deleteButton.click();
         }
-
+    
         setTimeout(() => {
-            buttons.confirmation_button = document.querySelector(ELEMENT_SELECTORS['confirmationButton']);
-            buttons.confirmation_button.click();
-
-            console.log(`[INFO] ${imageCount}/${maxImageCount} Deleted`);
+            let confirmationButtons = document.querySelectorAll('button.VfPpkd-LgbsSe');
+            let found = false;
+            confirmationButtons.forEach(button => {
+                let span = button.querySelector('span.VfPpkd-vQzf8d');
+                if (span && span.textContent === 'Move to trash') {
+                    button.click();
+                    found = true;
+                    console.log(`[INFO] ${imageCount}/${maxImageCount} Deleted`);
+                }
+            });
+            if (!found) {
+                console.log("[ERROR] Confirmation button not found.");
+            }
+    
             if (maxImageCount !== "ALL_PHOTOS" && imageCount >= parseInt(maxImageCount)) {
                 console.log(`${imageCount} photos deleted as requested`);
                 clearInterval(deleteTask);
                 console.log("[SUCCESS] Tool exited.");
                 return;
             }
-
         }, TIME_CONFIG['press_button_delay']);
     }, TIME_CONFIG['press_button_delay']);
-}, TIME_CONFIG['delete_cycle']);
+  }, TIME_CONFIG['delete_cycle']);
