@@ -13,8 +13,8 @@ const ELEMENT_SELECTORS = {
 
 // Time Configuration (in milliseconds)
 const TIME_CONFIG = {
-    delete_cycle: 5000,
-    press_button_delay: 1000
+    delete_cycle: 10000,
+    press_button_delay: 2000
 };
 
 const MAX_RETRIES = 1000;
@@ -62,7 +62,6 @@ let deleteTask = setInterval(async () => {
             let confirmationButtons = document.querySelectorAll('button.VfPpkd-LgbsSe');
             let found = false;
             confirmationButtons.forEach(button => {
-            console.log(button)
                 let span = button.querySelector('span.VfPpkd-vQzf8d');
                 if (span && span.textContent === 'Move to trash') {
                     button.click();
