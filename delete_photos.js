@@ -59,8 +59,8 @@ let deleteTask = setInterval(async () => {
         }
 
         setTimeout(() => {
-            buttons.confirmation_button = document.querySelector(ELEMENT_SELECTORS['confirmationButton']);
-            buttons.confirmation_button.click();
+            buttons.confirmationButton = document.querySelector(ELEMENT_SELECTORS['confirmationButton']);
+            buttons.confirmationButton.click();
 
             console.log(`[INFO] ${imageCount}/${maxImageCount} Deleted`);
             if (maxImageCount !== "ALL_PHOTOS" && imageCount >= parseInt(maxImageCount)) {
