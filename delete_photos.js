@@ -4,16 +4,14 @@ Works best in Chrom(ium); Firefox works but can have loading issues and timing i
 https://github.com/mrishab/google-photos-delete-tool/
 */
 
-//let deleteGooglePhotos = async function(
+/* let deleteGooglePhotos = async function(const maxItemCount = "ALL_PHOTOS", const itemUnit = "photos") { */
 const maxItemCount = "ALL_PHOTOS";
-//, 
 const itemUnit = "photos";
-//) {
 
 const CHECKBOX_CLASSES = {
 	days: '.QcpS9c.R4HkWb',	// Delete whole days at a time - Won't delete dates with only one image!
-	photos: '.ckGgle',		// Delete sets of photos at a time
-	infinity: '.ckGgle'		// Delete everything and do not exit: if you have 10k+ photos and don't want to risk it quitting part way through
+	photos: '.ckGgle',      // Delete sets of photos at a time
+	infinity: '.ckGgle'     // Delete everything and do not exit: if you have 10k+ photos and don't want to risk it quitting part way through
 }
 
 // Selector for Images and buttons
@@ -93,10 +91,10 @@ let deleteTask = setInterval(async () => {
         }, TIME_CONFIG['press_button_delay']);
     }, TIME_CONFIG['press_button_delay']);
 }, TIME_CONFIG['delete_cycle']);
-//};
+/* }; */
 
 // How many photos to delete?
 // Put a number value, like this
 //   deleteGooglePhotos(5896, "photos");
 // If the first argument is missing, we will delete all photos.
-//deleteGooglePhotos(); // Rerun this line to start the program again
+/* deleteGooglePhotos(); // Rerun this line to start the program again */
