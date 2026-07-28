@@ -14,11 +14,11 @@ const ELEMENT_SELECTORS = {
     dialogDefaultButton: 'button[data-mdc-dialog-button-default]'
 }
 
-// Only used when the structural marker above is missing.
+// Only used when the structural marker above is missing. Matched case-insensitively.
 const CONFIRM_TEXTS = ['Move to trash', 'Move to bin', 'Delete', 'OK', 'Got it', 'Continue'];
 
 // Buttons that must never be clicked. "Learn more" only opens a help page,
-// so clicking it leaves the deletion unconfirmed.
+// so clicking it leaves the deletion unconfirmed. Matched case-insensitively.
 const CANCEL_TEXTS = ['Cancel', 'Close', 'Learn more'];
 
 // The first time you delete on an account, Google shows an extra notice
@@ -42,18 +42,37 @@ let buttons = {
     confirmationButton: null
 }
 
-const isVisible = (element) => !!element && element.offsetParent !== null;
+// A cycle can take longer than delete_cycle when several dialogs appear, so the
+// interval must not start a new cycle while the previous one is still running.
+let cycleInProgress = false;
+
+// Note: offsetParent is null for position:fixed elements, which dialogs often
+// are, so it cannot be used to decide whether a dialog is on screen.
+const isVisible = (element) => {
+    if (!element) return false;
+    const style = window.getComputedStyle(element);
+    if (style.display === 'none' || style.visibility === 'hidden') return false;
+    return element.getClientRects().length > 0;
+};
 
 const labelOf = (element) =>
     (element.getAttribute('aria-label') || element.innerText || element.textContent || '').trim();
 
+const labelMatches = (element, texts) => {
+    const label = labelOf(element).toLowerCase();
+    return texts.some((text) => label.includes(text.toLowerCase()));
+};
+
 const wait = (ms) => new Promise(resolve => setTimeout(resolve, ms));
+
+const findVisibleDialog = () =>
+    [...document.querySelectorAll(ELEMENT_SELECTORS['dialog'])].find(isVisible) || null;
 
 // Waits for a dialog to show up. Returns null if none appears in time.
 async function waitForDialog(timeout) {
     const deadline = Date.now() + timeout;
     while (Date.now() < deadline) {
-        const dialog = [...document.querySelectorAll(ELEMENT_SELECTORS['dialog'])].find(isVisible);
+        const dialog = findVisibleDialog();
         if (dialog) return dialog;
         await wait(250);
     }
@@ -64,13 +83,13 @@ async function waitForDialog(timeout) {
 function findConfirmButton(dialog) {
     const candidates = [...dialog.querySelectorAll('button')]
         .filter(isVisible)
-        .filter((button) => !CANCEL_TEXTS.some((text) => labelOf(button).includes(text)));
+        .filter((button) => !labelMatches(button, CANCEL_TEXTS));
 
     const marked = candidates.find((button) => button.matches(ELEMENT_SELECTORS['dialogDefaultButton']));
     if (marked) return marked;
 
     for (const text of CONFIRM_TEXTS) {
-        const hit = candidates.find((button) => labelOf(button).includes(text));
+        const hit = candidates.find((button) => labelMatches(button, [text]));
         if (hit) return hit;
     }
 
@@ -79,18 +98,19 @@ function findConfirmButton(dialog) {
 }
 
 // Confirms the deletion, handling every dialog that shows up in sequence.
+// Returns true when no dialog is left on screen.
 async function confirmDeletion() {
     for (let index = 0; index < MAX_DIALOGS; index++) {
         const timeout = index === 0 ? TIME_CONFIG['press_button_delay'] + 3000 : 2000;
         const dialog = await waitForDialog(timeout);
 
         // No dialog left. On the first pass this simply means none was required.
-        if (!dialog) return;
+        if (!dialog) return true;
 
         const confirmButton = findConfirmButton(dialog);
         if (!confirmButton) {
             console.error("[ERROR] Found a dialog but no button to confirm with:", labelOf(dialog));
-            return;
+            return false;
         }
 
         confirmButton.click();
@@ -101,31 +121,47 @@ async function confirmDeletion() {
             await wait(250);
         }
     }
+
+    // Ran out of allowed dialogs. Report it instead of logging a deletion that
+    // may not have happened.
+    if (findVisibleDialog()) {
+        console.error(
+            `[ERROR] A dialog is still open after handling ${MAX_DIALOGS} of them. Skipping this cycle.`
+        );
+        return false;
+    }
+    return true;
 }
 
 let deleteTask = setInterval(async () => {
-    let attemptCount = 1;
+    // Skip this tick if the previous cycle has not finished. Overlapping cycles
+    // would fight over the same checkboxes and dialogs.
+    if (cycleInProgress) return;
+    cycleInProgress = true;
 
-    do {
-        checkboxes = document.querySelectorAll(ELEMENT_SELECTORS['checkboxClass']);
-        await new Promise(r => setTimeout(r, 1000));
-    } while (checkboxes.length <= 0 && attemptCount++ < MAX_RETRIES);
+    try {
+        let attemptCount = 1;
+
+        do {
+            checkboxes = document.querySelectorAll(ELEMENT_SELECTORS['checkboxClass']);
+            await wait(1000);
+        } while (checkboxes.length <= 0 && attemptCount++ < MAX_RETRIES);
 
 
-    if (checkboxes.length <= 0) {
-        console.log("[INFO] No more images to delete.");
-        clearInterval(deleteTask);
-        console.log("[SUCCESS] Tool exited.");
-        return;
-    }
+        if (checkboxes.length <= 0) {
+            console.log("[INFO] No more images to delete.");
+            clearInterval(deleteTask);
+            console.log("[SUCCESS] Tool exited.");
+            return;
+        }
 
-    attemptCount = 1;
-    imageCount += checkboxes.length;
+        attemptCount = 1;
 
-    checkboxes.forEach((checkbox) => { checkbox.click() });
-    console.log("[INFO] Deleting", checkboxes.length, "images");
+        checkboxes.forEach((checkbox) => { checkbox.click() });
+        console.log("[INFO] Deleting", checkboxes.length, "images");
 
-    setTimeout(async () => {
+        await wait(TIME_CONFIG['press_button_delay']);
+
         try {
             buttons.deleteButton = document.querySelector(ELEMENT_SELECTORS['languageAgnosticDeleteButton']);
             buttons.deleteButton.click();
@@ -134,7 +170,10 @@ let deleteTask = setInterval(async () => {
             buttons.deleteButton.click();
         }
 
-        await confirmDeletion();
+        // Only count the images once the deletion was actually confirmed.
+        if (!await confirmDeletion()) return;
+
+        imageCount += checkboxes.length;
 
         console.log(`[INFO] ${imageCount}/${maxImageCount} Deleted`);
         if (maxImageCount !== "ALL_PHOTOS" && imageCount >= parseInt(maxImageCount)) {
@@ -143,5 +182,7 @@ let deleteTask = setInterval(async () => {
             console.log("[SUCCESS] Tool exited.");
             return;
         }
-    }, TIME_CONFIG['press_button_delay']);
+    } finally {
+        cycleInProgress = false;
+    }
 }, TIME_CONFIG['delete_cycle']);
