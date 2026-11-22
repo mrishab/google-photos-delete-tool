@@ -20,10 +20,10 @@
     const maxImageCount = "ALL_PHOTOS";
 
     // Timing Configuration (in milliseconds)
-    // If you have a slower internet connection, increase these values.
+    // If you have a slower internet connection or huge library, increase these values.
     const TIME_CONFIG = {
-        delete_cycle: 10000,       // Interval between batch deletion cycles (default: 10 seconds)
-        press_button_delay: 2000   // Delay between clicking delete and confirming (default: 2 seconds)
+        delete_cycle: 10000,       // Pause between batches after a cycle completes (default: 10 seconds)
+        press_button_delay: 2000   // Delay after selecting photos before clicking delete (default: 2 seconds)
     };
 
     // Retry settings for detecting photos before concluding the library is empty
@@ -31,7 +31,7 @@
     const CHECKBOX_RETRY_DELAY = 1000; // ms between retries
 
     // Google occasionally presents an extra informational notice on first deletion
-    // before the actual confirmation dialog. We handle up to 3 chained dialogs.
+    // before the actual confirmation dialog. We handle chained dialogs (up to 3).
     const MAX_DIALOGS = 3;
 
     // =========================================================================
@@ -42,42 +42,63 @@
         // Selection checkbox on photo cards
         checkbox: '.ckGgle',
 
-        // Delete (trash bin) button in the top action bar
+        // Action bar / selection toolbar container
+        toolbarContainer: 'header, [role="toolbar"], div[data-delete-origin], div[aria-label*="Selected" i]',
+
+        // Language-agnostic delete button in the selection action bar
         languageAgnosticDeleteButton: 'div[data-delete-origin] button',
-        deleteButton: 'button[aria-label="Delete"], button[data-tooltip*="Delete" i], button[aria-label*="Trash" i]',
+
+        // Delete button selectors in top action bar
+        deleteButton: 'button[aria-label="Delete"], button[data-tooltip*="Delete" i], button[aria-label*="Trash" i], button[aria-label*="Move to trash" i], button[aria-label*="Move to bin" i]',
 
         // Modal dialog containers
         dialog: '[aria-modal="true"], [role="alertdialog"], [role="dialog"]',
 
-        // Structural attribute Google sets on the primary affirmative button of a dialog
-        dialogDefaultButton: 'button[data-mdc-dialog-button-default]'
+        // Structural attributes Google sets on primary affirmative buttons in dialogs
+        dialogDefaultButton: 'button[data-mdc-dialog-button-default], [data-mdc-dialog-button-default], [data-mdc-dialog-action="accept"], [data-mdc-dialog-action="ok"]'
     };
 
     // Affirmative action keywords across English and common UI variants
-    const CONFIRM_TEXTS = ['Move to trash', 'Move to bin', 'Delete', 'OK', 'Got it', 'Continue'];
+    const CONFIRM_TEXTS = [
+        'move to trash', 'move to bin', 'delete', 'ok', 'got it', 'continue',
+        'trash', 'bin', 'remove'
+    ];
 
     // Negative/dismiss action keywords that must NEVER be clicked
-    const CANCEL_TEXTS = ['Cancel', 'Close', 'Learn more', 'Dismiss', 'Back'];
+    const CANCEL_TEXTS = [
+        'cancel', 'close', 'learn more', 'dismiss', 'back', 'keep', 'undo', 'no thanks'
+    ];
 
     // =========================================================================
     // STATE MANAGEMENT & INSTANCE CLEANUP
     // =========================================================================
 
-    // Clean up any previously running instance in the current tab
-    if (window.__googlePhotosDeleteTask) {
-        clearInterval(window.__googlePhotosDeleteTask);
-        window.__googlePhotosDeleteTask = null;
+    // Stop and clean up any previously running instance in the current tab
+    if (window.__googlePhotosDeleteState && window.__googlePhotosDeleteState.isRunning) {
+        window.__googlePhotosDeleteState.isRunning = false;
+        if (window.__googlePhotosDeleteState.timerId) {
+            clearTimeout(window.__googlePhotosDeleteState.timerId);
+            window.__googlePhotosDeleteState.timerId = null;
+        }
         console.log('[INFO] Stopped previously active deletion task.');
     }
 
-    let imageCount = 0;
-    let cycleInProgress = false;
+    const state = {
+        isRunning: true,
+        imageCount: 0,
+        cycleInProgress: false,
+        timerId: null
+    };
+    window.__googlePhotosDeleteState = state;
 
-    // Expose a global stop function so users can stop the tool anytime
+    // Expose global stop function so users can halt execution anytime
     window.stopGooglePhotosDelete = function () {
-        if (window.__googlePhotosDeleteTask) {
-            clearInterval(window.__googlePhotosDeleteTask);
-            window.__googlePhotosDeleteTask = null;
+        if (state.isRunning) {
+            state.isRunning = false;
+            if (state.timerId) {
+                clearTimeout(state.timerId);
+                state.timerId = null;
+            }
             console.log('[INFO] Google Photos Delete Tool stopped by user.');
         } else {
             console.log('[INFO] No active deletion task is currently running.');
@@ -88,7 +109,13 @@
     // DOM HELPERS
     // =========================================================================
 
-    const wait = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+    const wait = (ms) => new Promise((resolve) => {
+        if (!state.isRunning) return resolve();
+        state.timerId = setTimeout(() => {
+            state.timerId = null;
+            resolve();
+        }, ms);
+    });
 
     const isVisible = (element) => {
         if (!element) return false;
@@ -100,7 +127,11 @@
     };
 
     const labelOf = (element) =>
-        (element.getAttribute('aria-label') || element.innerText || element.textContent || '').trim();
+        (element.getAttribute('aria-label') ||
+         element.getAttribute('data-tooltip') ||
+         element.getAttribute('title') ||
+         element.innerText ||
+         element.textContent || '').trim();
 
     const labelMatches = (element, texts) => {
         const label = labelOf(element).toLowerCase();
@@ -112,21 +143,23 @@
 
     async function waitForDialog(timeout) {
         const deadline = Date.now() + timeout;
-        while (Date.now() < deadline) {
+        while (Date.now() < deadline && state.isRunning) {
             const dialog = findVisibleDialog();
             if (dialog) return dialog;
             await wait(250);
         }
-        return null;
+        return findVisibleDialog();
     }
 
     function findConfirmButton(dialog) {
-        const candidates = [...dialog.querySelectorAll('button')]
+        const candidates = [...dialog.querySelectorAll('button, [role="button"]')]
             .filter(isVisible)
             .filter((button) => !labelMatches(button, CANCEL_TEXTS));
 
         // Priority 1: Google's default affirmative button attribute
-        const marked = candidates.find((button) => button.matches(SELECTORS.dialogDefaultButton));
+        const marked = candidates.find((button) => {
+            try { return button.matches(SELECTORS.dialogDefaultButton); } catch (e) { return false; }
+        });
         if (marked) return marked;
 
         // Priority 2: Affirmative text match
@@ -141,11 +174,23 @@
 
     async function confirmDeletion() {
         for (let index = 0; index < MAX_DIALOGS; index++) {
-            const timeout = index === 0 ? TIME_CONFIG.press_button_delay + 3000 : 2000;
+            if (!state.isRunning) return false;
+
+            const timeout = index === 0 ? TIME_CONFIG.press_button_delay + 3000 : Math.min(TIME_CONFIG.press_button_delay, 1000);
             const dialog = await waitForDialog(timeout);
 
-            // No dialog left — previous actions resolved the prompt
-            if (!dialog) return true;
+            if (!state.isRunning) return false;
+
+            // On the FIRST pass (index === 0), a dialog is strictly required.
+            // If no dialog appears, the deletion action was not acknowledged by Google Photos.
+            if (!dialog) {
+                if (index === 0) {
+                    console.warn('[WARN] Confirmation dialog did not appear. Retrying in next cycle...');
+                    return false;
+                }
+                // On subsequent passes (index > 0), null dialog means all dialogs have been confirmed.
+                return true;
+            }
 
             const confirmButton = findConfirmButton(dialog);
             if (!confirmButton) {
@@ -157,49 +202,58 @@
             confirmButton.click();
             console.log(`[INFO] Confirmed dialog ${index + 1}: "${buttonLabel}"`);
 
-            // Wait for dialog to dismiss before continuing
-            for (let i = 0; i < 20 && document.contains(dialog) && isVisible(dialog); i++) {
+            // Wait for this dialog to dismiss before continuing
+            for (let i = 0; i < 20 && document.contains(dialog) && isVisible(dialog) && state.isRunning; i++) {
                 await wait(250);
             }
         }
 
         if (findVisibleDialog()) {
-            console.warn('[WARN] A dialog is still open after handling confirmations. Retrying next cycle.');
+            console.warn('[WARN] A dialog is still open after handling confirmations. Retrying in next cycle.');
             return false;
         }
         return true;
     }
 
     function clickDeleteButton() {
-        let deleteBtn = null;
+        // Priority 1: Language-agnostic container button
         try {
-            deleteBtn = document.querySelector(SELECTORS.languageAgnosticDeleteButton);
+            const deleteBtn = document.querySelector(SELECTORS.languageAgnosticDeleteButton);
+            if (deleteBtn && isVisible(deleteBtn)) {
+                deleteBtn.click();
+                return true;
+            }
         } catch (e) {}
 
-        if (!deleteBtn) {
-            try {
-                deleteBtn = document.querySelector(SELECTORS.deleteButton);
-            } catch (e) {}
-        }
-
-        if (deleteBtn && isVisible(deleteBtn)) {
-            deleteBtn.click();
-            return true;
-        }
-
-        // Fallback: search visible buttons with delete/trash label
-        const allButtons = document.querySelectorAll('button');
-        for (const btn of allButtons) {
-            if (isVisible(btn)) {
-                const label = labelOf(btn).toLowerCase();
-                if (label.includes('delete') || label.includes('trash') || label.includes('bin')) {
+        // Priority 2: Standard delete button selector (exclude navigation sidebar)
+        try {
+            const btns = document.querySelectorAll(SELECTORS.deleteButton);
+            for (const btn of btns) {
+                if (isVisible(btn) && !btn.closest('nav, aside, [role="navigation"]')) {
                     btn.click();
                     return true;
                 }
             }
+        } catch (e) {}
+
+        // Priority 3: Search within the selection action bar / toolbar
+        const toolbars = document.querySelectorAll(SELECTORS.toolbarContainer);
+        for (const toolbar of toolbars) {
+            if (isVisible(toolbar)) {
+                const buttons = toolbar.querySelectorAll('button, [role="button"]');
+                for (const btn of buttons) {
+                    if (isVisible(btn)) {
+                        const label = labelOf(btn).toLowerCase();
+                        if (label.includes('delete') || label.includes('trash') || label.includes('bin')) {
+                            btn.click();
+                            return true;
+                        }
+                    }
+                }
+            }
         }
 
-        console.warn('[WARN] Delete button not found in toolbar.');
+        console.warn('[WARN] Delete button not found in toolbar. Retrying in next cycle...');
         return false;
     }
 
@@ -208,74 +262,85 @@
     // =========================================================================
 
     async function deletionCycle() {
-        if (cycleInProgress) return;
-        cycleInProgress = true;
+        if (!state.isRunning || state.cycleInProgress) return;
+        state.cycleInProgress = true;
 
         try {
             let attemptCount = 0;
             let checkboxes = [];
 
-            // Wait for photos to appear with retry
-            while (attemptCount < MAX_CHECKBOX_RETRIES) {
-                checkboxes = document.querySelectorAll(SELECTORS.checkbox);
+            // Wait for photos to appear with retry and scroll nudge
+            while (attemptCount < MAX_CHECKBOX_RETRIES && state.isRunning) {
+                checkboxes = [...document.querySelectorAll(SELECTORS.checkbox)].filter(isVisible);
                 if (checkboxes.length > 0) break;
+
+                // Nudge scroll to trigger virtual list lazy-loader if photos are not loaded yet
+                window.scrollBy(0, 300);
                 await wait(CHECKBOX_RETRY_DELAY);
                 attemptCount++;
             }
 
-            // If no photos found after all retries, finish
+            if (!state.isRunning) return;
+
+            // Scroll back up after retries
+            if (attemptCount > 0 && checkboxes.length > 0) {
+                window.scrollTo(0, 0);
+            }
+
+            // If no photos found after all retries, conclude deletion
             if (checkboxes.length === 0) {
                 console.log('[INFO] No more photos found.');
-                if (window.__googlePhotosDeleteTask) {
-                    clearInterval(window.__googlePhotosDeleteTask);
-                    window.__googlePhotosDeleteTask = null;
-                }
-                console.log(`[SUCCESS] Deletion completed! Total deleted: ${imageCount} photos. Tool exited.`);
+                state.isRunning = false;
+                console.log(`[SUCCESS] Deletion completed! Total deleted: ${state.imageCount} photos. Tool exited.`);
                 return;
             }
 
-            // Select all visible photos
-            checkboxes.forEach((cb) => cb.click());
-            console.log(`[INFO] Selected ${checkboxes.length} photos.`);
+            // Only click checkboxes that are NOT already checked (prevents unselecting)
+            const toSelect = checkboxes.filter((cb) => cb.getAttribute('aria-checked') !== 'true');
+            toSelect.forEach((cb) => cb.click());
+            console.log(`[INFO] Selected ${checkboxes.length} photos (${toSelect.length} newly clicked).`);
 
-            // Wait before clicking delete button
+            // Wait for toolbar to update before clicking delete button
             await wait(TIME_CONFIG.press_button_delay);
+            if (!state.isRunning) return;
 
             if (!clickDeleteButton()) {
-                console.warn('[WARN] Could not click delete button. Retrying in next cycle...');
                 return;
             }
 
             // Confirm deletion dialog(s)
             const confirmed = await confirmDeletion();
-            if (!confirmed) {
+            if (!confirmed || !state.isRunning) {
                 return;
             }
 
             // Update count only after successful confirmation
-            imageCount += checkboxes.length;
+            state.imageCount += checkboxes.length;
             const targetDisplay = maxImageCount === "ALL_PHOTOS" ? "All" : maxImageCount;
-            console.log(`[INFO] Deleted batch. Total so far: ${imageCount} / ${targetDisplay}`);
+            console.log(`[INFO] Deleted batch. Total so far: ${state.imageCount} / ${targetDisplay}`);
 
             // Check if user requested limit is reached
-            if (maxImageCount !== "ALL_PHOTOS" && imageCount >= parseInt(maxImageCount, 10)) {
-                if (window.__googlePhotosDeleteTask) {
-                    clearInterval(window.__googlePhotosDeleteTask);
-                    window.__googlePhotosDeleteTask = null;
-                }
+            if (maxImageCount !== "ALL_PHOTOS" && state.imageCount >= parseInt(maxImageCount, 10)) {
+                state.isRunning = false;
                 console.log(`[SUCCESS] Target of ${maxImageCount} photos deleted as requested. Tool exited.`);
                 return;
             }
         } catch (err) {
             console.error('[ERROR] Unexpected error in deletion cycle:', err);
         } finally {
-            cycleInProgress = false;
+            state.cycleInProgress = false;
         }
     }
 
     // =========================================================================
-    // STARTUP
+    // STARTUP & LOOP
     // =========================================================================
+
+    // Language guidance check
+    const isEnglish = window.location.search.includes('hl=en') || (document.documentElement && document.documentElement.lang && document.documentElement.lang.startsWith('en'));
+    if (!isEnglish) {
+        console.warn('[TIP] For best results and maximum selector compatibility, use the English interface: https://photos.google.com/?hl=en');
+    }
 
     console.log('==================================================');
     console.log('  Google Photos Delete Tool');
@@ -284,9 +349,13 @@
     console.log('  To stop anytime, type: stopGooglePhotosDelete()');
     console.log('==================================================');
 
-    // Run first batch immediately
-    deletionCycle();
+    async function runLoop() {
+        while (state.isRunning) {
+            await deletionCycle();
+            if (!state.isRunning) break;
+            await wait(TIME_CONFIG.delete_cycle);
+        }
+    }
 
-    // Schedule recurring cycles
-    window.__googlePhotosDeleteTask = setInterval(deletionCycle, TIME_CONFIG.delete_cycle);
+    runLoop();
 })();
