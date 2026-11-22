@@ -15,9 +15,9 @@
 
     const SELECTORS = {
         checkbox: '.ckGgle',
-        toolbarContainer: 'header, [role="toolbar"], div[data-delete-origin], div[aria-label*="Selected" i]',
+        toolbarContainer: 'header, [role="toolbar"], div[data-delete-origin], div[aria-label*="Selected" i], div[aria-label*="seleccionad" i], div[aria-label*="sélectionné" i], div[aria-label*="ausgewählt" i]',
         languageAgnosticDeleteButton: 'div[data-delete-origin] button',
-        deleteButton: 'button[aria-label="Delete"], button[data-tooltip*="Delete" i], button[aria-label*="Trash" i], button[aria-label*="Move to trash" i], button[aria-label*="Move to bin" i]',
+        deleteButton: 'button[aria-label="Delete"], button[data-tooltip*="Delete" i], button[aria-label*="Trash" i], button[aria-label*="Move to trash" i], button[aria-label*="Move to bin" i], button[aria-label*="papelera" i], button[aria-label*="corbeille" i], button[aria-label*="löschen" i], button[aria-label*="cestino" i], button[aria-label*="lixeira" i], button[aria-label*="удалить" i], button[aria-label*="휴지통" i], button[aria-label*="ゴミ箱" i], button[aria-label*="回收站" i]',
         dialog: '[aria-modal="true"], [role="alertdialog"], [role="dialog"]',
         dialogDefaultButton: 'button[data-mdc-dialog-button-default], [data-mdc-dialog-button-default], [data-mdc-dialog-action="accept"], [data-mdc-dialog-action="ok"]'
     };
@@ -139,14 +139,18 @@
         return candidates[candidates.length - 1] || null;
     }
 
-    async function waitForDeletionProgress(timeout = 5000) {
+    async function waitForDeletionProgress(timeout = 10000) {
+        await wait(600);
         const deadline = Date.now() + timeout;
         while (Date.now() < deadline && state.isRunning) {
             const notifications = [...document.querySelectorAll('[role="alert"], [role="status"], [aria-live="polite"], [aria-live="assertive"]')];
             const busy = notifications.some((el) => {
                 if (!isVisible(el)) return false;
                 const text = (el.innerText || el.textContent || '').toLowerCase();
-                return text.includes('moving') || text.includes('deleting') || text.includes('déplacement') || text.includes('verschoben');
+                return text.includes('moving') || text.includes('deleting') || text.includes('déplacement') ||
+                       text.includes('verschoben') || text.includes('spostamento') || text.includes('movendo') ||
+                       text.includes('перемещение') || text.includes('이동 중') || text.includes('移動中') ||
+                       text.includes('正在移动') || text.includes('borrando');
             });
             if (!busy) break;
             await wait(500);
@@ -219,7 +223,7 @@
                 const buttons = toolbar.querySelectorAll('button, [role="button"]');
                 for (const btn of buttons) {
                     if (isVisible(btn)) {
-                        if (labelMatches(btn, CONFIRM_TEXTS) || labelMatches(btn, ['delete', 'trash', 'bin'])) {
+                        if (labelMatches(btn, CONFIRM_TEXTS) || labelMatches(btn, ['delete', 'trash', 'bin', 'papelera', 'corbeille', 'löschen', 'cestino', 'lixeira', 'verwijderen', 'удалить', '휴지통', 'ゴミ箱', '回收站', '废纸篓'])) {
                             btn.click();
                             return true;
                         }
@@ -251,10 +255,6 @@
 
             if (!state.isRunning) return;
 
-            if (attemptCount > 0 && checkboxes.length > 0) {
-                window.scrollTo(0, 0);
-            }
-
             if (checkboxes.length === 0) {
                 console.log('[INFO] No more photos found.');
                 state.isRunning = false;
@@ -265,9 +265,25 @@
                 return;
             }
 
-            const toSelect = checkboxes.filter((cb) => cb.getAttribute('aria-checked') !== 'true');
+            let targetBatchCount = checkboxes.length;
+            if (maxImageCount !== "ALL_PHOTOS") {
+                const maxInt = parseInt(maxImageCount, 10);
+                const remaining = Math.max(0, maxInt - state.imageCount);
+                if (remaining <= 0) {
+                    state.isRunning = false;
+                    if (state.originalZoom !== undefined) {
+                        try { document.body.style.zoom = state.originalZoom; } catch (e) {}
+                    }
+                    console.log(`[SUCCESS] Target of ${maxImageCount} photos already reached. Tool exited.`);
+                    return;
+                }
+                targetBatchCount = Math.min(checkboxes.length, remaining);
+            }
+
+            const targetCheckboxes = checkboxes.slice(0, targetBatchCount);
+            const toSelect = targetCheckboxes.filter((cb) => cb.getAttribute('aria-checked') !== 'true');
             toSelect.forEach((cb) => cb.click());
-            console.log(`[INFO] Selected ${checkboxes.length} photos (${toSelect.length} newly clicked).`);
+            console.log(`[INFO] Selected ${targetBatchCount} photos (${toSelect.length} newly clicked).`);
 
             await wait(TIME_CONFIG.press_button_delay);
             if (!state.isRunning) return;
@@ -281,7 +297,7 @@
                 return;
             }
 
-            state.imageCount += checkboxes.length;
+            state.imageCount += targetBatchCount;
             const targetDisplay = maxImageCount === "ALL_PHOTOS" ? "All" : maxImageCount;
             console.log(`[INFO] Deleted batch. Total so far: ${state.imageCount} / ${targetDisplay}`);
 

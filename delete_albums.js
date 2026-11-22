@@ -34,6 +34,11 @@
         'cancel', 'annuler', 'cancelar', 'abbrechen', 'annulla', 'отмена', '취소', 'キャンセル', '取消'
     ];
 
+    const SYSTEM_ALBUM_PATTERNS = [
+        '/favorites', '/trash', '/archive', '/utilities', '/explore',
+        '/places', '/things', '/people', '/sharing'
+    ];
+
     if (window.__googlePhotosAlbumDeleteState && window.__googlePhotosAlbumDeleteState.isRunning) {
         window.__googlePhotosAlbumDeleteState.isRunning = false;
         if (window.__googlePhotosAlbumDeleteState.timerId) {
@@ -133,7 +138,13 @@
             let albumCards = [];
 
             while (attemptCount < MAX_ALBUM_RETRIES && state.isRunning) {
-                albumCards = [...document.querySelectorAll(SELECTORS.albumCard)].filter(isVisible);
+                albumCards = [...document.querySelectorAll(SELECTORS.albumCard)]
+                    .filter(isVisible)
+                    .filter((el) => !el.hasAttribute('data-skip-album'))
+                    .filter((el) => {
+                        const href = el.getAttribute('href') || (el.querySelector('a') && el.querySelector('a').getAttribute('href')) || '';
+                        return !SYSTEM_ALBUM_PATTERNS.some((p) => href.toLowerCase().includes(p));
+                    });
                 if (albumCards.length > 0) break;
                 window.scrollBy(0, 300);
                 await wait(ALBUM_RETRY_DELAY);
@@ -175,7 +186,8 @@
             const deleteOption = menuItems.find((item) => labelMatches(item, DELETE_ALBUM_TEXTS));
 
             if (!deleteOption) {
-                console.warn('[WARN] Could not find "Delete album" in menu. Skipping to next cycle...');
+                console.warn('[WARN] Could not find "Delete album" in menu for this card. Marking as skipped and proceeding...');
+                targetCard.setAttribute('data-skip-album', 'true');
                 document.body.click();
                 return;
             }
@@ -184,13 +196,15 @@
 
             const dialog = await waitForDialog(TIME_CONFIG.press_button_delay + 2000);
             if (!dialog || !state.isRunning) {
-                console.warn('[WARN] Confirmation dialog did not appear for album deletion.');
+                console.warn('[WARN] Confirmation dialog did not appear for album deletion. Marking as skipped...');
+                targetCard.setAttribute('data-skip-album', 'true');
                 return;
             }
 
             const confirmBtn = findConfirmButton(dialog);
             if (!confirmBtn) {
-                console.warn('[WARN] Confirmation button not found in album deletion dialog.');
+                console.warn('[WARN] Confirmation button not found in album deletion dialog. Marking as skipped...');
+                targetCard.setAttribute('data-skip-album', 'true');
                 return;
             }
 

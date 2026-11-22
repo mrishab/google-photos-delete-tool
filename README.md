@@ -16,6 +16,8 @@ Google Photos does not provide a native "Select All" or "Delete All" button. Del
 - [Targeted & Date-Filtered Deletions](#-targeted--date-filtered-deletions)
 - [Ultra-Fast Lightweight View](#-ultra-fast-lightweight-view-recommended)
 - [Deleting Albums](#-deleting-albums-delete_albumsjs)
+- [Restoring Photos from Trash](#-restoring-photos-from-trash-restore_photosjs)
+- [Quick Alternative: Native Shift + Click (For Small Batches)](#-quick-alternative-native-shift--click-for-small-batches)
 - [For AI Agents (Agentic Era)](#-for-ai-agents-agentic-era)
 - [Detailed Step-by-Step Guide (For Everyone)](#-detailed-step-by-step-guide-for-everyone)
   - [Prerequisites](#prerequisites)
@@ -84,6 +86,31 @@ If you have hundreds or thousands of empty or duplicate albums (often created un
 5. To stop anytime, type `stopGooglePhotosAlbumDelete()` and hit Enter.
 
 *(Note: Deleting an album does **not** delete the photos inside it from your main library; it only deletes the album collection).*
+
+---
+
+## ♻️ Restoring Photos from Trash (`restore_photos.js`)
+
+Accidentally deleted photos or changed your mind? Google Photos does not provide a "Restore All" button in the Trash. If you need to recover thousands of photos from the Trash bin:
+
+1. Navigate to **[https://photos.google.com/trash?hl=en](https://photos.google.com/trash?hl=en)**.
+2. Open Developer Tools (`Ctrl + Shift + I` or `Cmd + Option + I`) and click the **Console** tab.
+3. Copy and paste **[restore_photos.js](restore_photos.js)** into the console and press **Enter**.
+4. The tool will auto-zoom, select photos in batches, click the "Restore" button, and return them back to your main library automatically.
+5. To stop anytime, type `stopGooglePhotosRestore()` and hit Enter.
+
+---
+
+## 🖱️ Quick Alternative: Native Shift + Click (For Small Batches)
+
+If you only have 200–500 photos to delete, you can use Google Photos' native shift-select feature without opening DevTools:
+
+1. Click the checkmark circle on the first photo.
+2. Hold down the **Shift** key on your keyboard.
+3. Scroll down ~300 to 500 photos.
+4. While still holding Shift, hover over the last photo — notice the entire block between the first and last photo turns shaded.
+5. Click the last photo to select the entire batch, then click the **Trash icon** in the top toolbar.
+6. *(For thousands of photos, use `delete_photos.js` instead to automate this unattended).*
 
 ---
 
@@ -192,7 +219,7 @@ If you prefer not opening the Developer Tools console every time, you can use th
 ## 🛑 How to Stop the Script
 
 You can stop the deletion process at any time:
-- **Command:** Type `stopGooglePhotosDelete()` in the console and press **Enter** (for albums: `stopGooglePhotosAlbumDelete()`).
+- **Command:** Type `stopGooglePhotosDelete()` in the console and press **Enter** (for albums: `stopGooglePhotosAlbumDelete()`, for restoring: `stopGooglePhotosRestore()`).
 - **Alternative:** Simply refresh or close the Google Photos tab.
 
 ---
@@ -265,7 +292,7 @@ This tool deletes photos from your main Photos library stream (`photos.google.co
 - **Creations & "For You":** Auto-generated creations (animations, collages) are managed under Google Utilities and aren't part of the primary photo timeline.
 
 #### 6. Can I recover photos if I change my mind?
-Yes! As long as you haven't emptied your Google Photos Trash, you can go to [photos.google.com/trash](https://photos.google.com/trash), select items, and click "Restore".
+Yes! As long as you haven't emptied your Google Photos Trash, items remain in Trash for 30–60 days. You can go to [photos.google.com/trash](https://photos.google.com/trash) and manually select photos to restore, or run **[restore_photos.js](restore_photos.js)** to bulk restore all items in Trash automatically!
 
 #### 7. Is this tool safe?
 Yes. The script is 100% open-source, contains zero external network requests, zero telemetry, and runs strictly in your browser session. You can inspect every single line of code in [delete_photos.js](delete_photos.js).
