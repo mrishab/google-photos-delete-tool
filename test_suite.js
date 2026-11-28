@@ -497,8 +497,182 @@ async function runAllTests() {
         console.log('✓ TEST 8 PASSED: Edge cases (empty library termination, state recreation) handled cleanly.\n');
     }
 
+    // -----------------------------------------------------------------------------
+    // Test 9: Cancellation Safety (Resolving pending wait/observer & cycleInProgress)
+    // -----------------------------------------------------------------------------
+    console.log('TEST 9: Cancellation safety during pending waitForDialog / wait...');
+
+    {
+        const html = `
+        <!DOCTYPE html>
+        <html lang="en">
+        <body>
+            <header>
+                <div data-delete-origin="photos">
+                    <button aria-label="Delete" style="display:block; width:20px; height:20px;">Delete</button>
+                </div>
+            </header>
+            <main>
+                <div role="checkbox" aria-checked="false" style="display:block; width:10px; height:10px;"></div>
+            </main>
+        </body>
+        </html>
+        `;
+
+        const dom = new JSDOM(html, {
+            url: 'https://photos.google.com/?hl=en',
+            runScripts: 'outside-only',
+            pretendToBeVisual: true
+        });
+        const win = dom.window;
+        const doc = win.document;
+        win.scrollBy = () => {};
+        win.scrollTo = () => {};
+        win.Element.prototype.getClientRects = () => [{ width: 10, height: 10 }];
+
+        // Never opens a dialog, so waitForDialog will be pending when stopped
+        win.eval(photoScript);
+
+        // Wait until press_button_delay elapses and cycle is waiting for dialog
+        await new Promise(r => setTimeout(r, 2300));
+        assert.strictEqual(win.__googlePhotosDeleteState.cycleInProgress, true, 'Cycle should be in progress waiting for dialog');
+
+        win.stopGooglePhotosDelete();
+        // Give microtasks a tick to unwind finally block
+        await new Promise(r => setTimeout(r, 50));
+
+        assert.strictEqual(win.__googlePhotosDeleteState.isRunning, false, 'isRunning must be false after stop');
+        assert.strictEqual(win.__googlePhotosDeleteState.cycleInProgress, false, 'cycleInProgress must unwind to false when stopped mid-wait');
+        assert.strictEqual(doc.body.style.zoom, '', 'zoom must be restored on stop');
+
+        console.log('✓ TEST 9 PASSED: Pending timers and observers resolved cleanly on stop without hanging.\n');
+    }
+
+    // -----------------------------------------------------------------------------
+    // Test 10: Fail-Closed Confirmation Button Selection
+    // -----------------------------------------------------------------------------
+    console.log('TEST 10: Fail-closed dialog confirmation (never click unknown buttons)...');
+
+    {
+        const html = `
+        <!DOCTYPE html>
+        <html lang="en">
+        <body>
+            <header>
+                <div data-delete-origin="photos">
+                    <button aria-label="Delete" style="display:block; width:20px; height:20px;">Delete</button>
+                </div>
+            </header>
+            <main>
+                <div role="checkbox" aria-checked="false" style="display:block; width:10px; height:10px;"></div>
+            </main>
+            <div id="modal-container"></div>
+        </body>
+        </html>
+        `;
+
+        const dom = new JSDOM(html, {
+            url: 'https://photos.google.com/?hl=en',
+            runScripts: 'outside-only',
+            pretendToBeVisual: true
+        });
+        const win = dom.window;
+        const doc = win.document;
+        win.scrollBy = () => {};
+        win.scrollTo = () => {};
+        win.Element.prototype.getClientRects = () => [{ width: 10, height: 10 }];
+
+        let unknownClicked = false;
+        doc.querySelector('div[data-delete-origin] button').addEventListener('click', () => {
+            const dialog = doc.createElement('div');
+            dialog.setAttribute('role', 'dialog');
+            dialog.setAttribute('aria-modal', 'true');
+            dialog.innerHTML = `
+                <button type="button">Unbekannte Aktion</button>
+                <button type="button" class="trap-btn">Something else entirely</button>
+            `;
+            doc.getElementById('modal-container').appendChild(dialog);
+            dialog.querySelector('.trap-btn').addEventListener('click', () => {
+                unknownClicked = true;
+            });
+        });
+
+        win.eval(photoScript);
+        await new Promise(r => setTimeout(r, 2500));
+        win.stopGooglePhotosDelete();
+        await new Promise(r => setTimeout(r, 50));
+
+        assert.strictEqual(unknownClicked, false, 'Must NOT click unrecognized fallback button in modal');
+        assert.strictEqual(win.__googlePhotosDeleteState.imageCount, 0, 'imageCount must remain 0 when confirmation fails closed');
+
+        console.log('✓ TEST 10 PASSED: Unrecognized dialog buttons were safely ignored (fail-closed).\n');
+    }
+
+    // -----------------------------------------------------------------------------
+    // Test 11: Semantic [role="checkbox"] Prioritization over .ckGgle
+    // -----------------------------------------------------------------------------
+    console.log('TEST 11: Semantic [role="checkbox"] prioritization...');
+
+    {
+        const html = `
+        <!DOCTYPE html>
+        <html lang="en">
+        <body>
+            <header>
+                <div data-delete-origin="photos">
+                    <button aria-label="Delete" style="display:block; width:20px; height:20px;">Delete</button>
+                </div>
+            </header>
+            <main>
+                <div role="checkbox" aria-checked="false" class="semantic-cb" style="display:block; width:10px; height:10px;"></div>
+                <div class="ckGgle" aria-checked="false" style="display:block; width:10px; height:10px;"></div>
+            </main>
+            <div id="modal-container"></div>
+        </body>
+        </html>
+        `;
+
+        const dom = new JSDOM(html, {
+            url: 'https://photos.google.com/?hl=en',
+            runScripts: 'outside-only',
+            pretendToBeVisual: true
+        });
+        const win = dom.window;
+        const doc = win.document;
+        win.scrollBy = () => {};
+        win.scrollTo = () => {};
+        win.Element.prototype.getClientRects = () => [{ width: 10, height: 10 }];
+
+        let semanticClicked = false;
+        let fallbackClicked = false;
+        doc.querySelector('.semantic-cb').addEventListener('click', () => { semanticClicked = true; });
+        doc.querySelector('.ckGgle').addEventListener('click', () => { fallbackClicked = true; });
+
+        doc.querySelector('div[data-delete-origin] button').addEventListener('click', () => {
+            const dialog = doc.createElement('div');
+            dialog.setAttribute('role', 'dialog');
+            dialog.setAttribute('aria-modal', 'true');
+            dialog.innerHTML = `<button type="button" data-mdc-dialog-button-default="true">Move to trash</button>`;
+            doc.getElementById('modal-container').appendChild(dialog);
+            dialog.querySelector('button').addEventListener('click', () => dialog.remove());
+        });
+
+        win.eval(photoScript);
+        const deadline = Date.now() + 10000;
+        while (Date.now() < deadline && win.__googlePhotosDeleteState.imageCount === 0) {
+            await new Promise(r => setTimeout(r, 150));
+        }
+        win.stopGooglePhotosDelete();
+
+        assert.strictEqual(semanticClicked, true, 'Semantic [role="checkbox"] must be selected');
+        assert.strictEqual(fallbackClicked, false, 'Fallback .ckGgle should not be needed when [role="checkbox"] is present');
+        assert.strictEqual(win.__googlePhotosDeleteState.imageCount, 1, 'imageCount should match semantic checkboxes');
+
+        console.log('✓ TEST 11 PASSED: Semantic [role="checkbox"] prioritized over .ckGgle.\n');
+    }
+
     console.log('====================================================');
-    console.log(' ALL 8 TEST SUITES PASSED COMPLETELY!');
+    console.log(' ALL 11 TEST SUITES PASSED COMPLETELY!');
     console.log('====================================================');
 }
 

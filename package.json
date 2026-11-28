@@ -3,6 +3,7 @@
   "version": "1.1.0",
   "description": "A browser script to bulk delete Google Photos and albums automatically.",
   "scripts": {
+    "build": "node scripts/build.js",
     "test": "node test_suite.js"
   },
   "devDependencies": {

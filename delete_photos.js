@@ -14,78 +14,102 @@
     const MAX_DIALOGS = 3;
 
     const SELECTORS = {
-        checkbox: '.ckGgle',
         toolbarContainer: 'header, [role="toolbar"], div[data-delete-origin], div[aria-label*="Selected" i], div[aria-label*="seleccionad" i], div[aria-label*="sélectionné" i], div[aria-label*="ausgewählt" i]',
         languageAgnosticDeleteButton: 'div[data-delete-origin] button',
-        deleteButton: 'button[aria-label="Delete"], button[data-tooltip*="Delete" i], button[aria-label*="Trash" i], button[aria-label*="Move to trash" i], button[aria-label*="Move to bin" i], button[aria-label*="papelera" i], button[aria-label*="corbeille" i], button[aria-label*="löschen" i], button[aria-label*="cestino" i], button[aria-label*="lixeira" i], button[aria-label*="удалить" i], button[aria-label*="휴지통" i], button[aria-label*="ゴミ箱" i], button[aria-label*="回收站" i]',
-        dialog: '[aria-modal="true"], [role="alertdialog"], [role="dialog"]',
-        dialogDefaultButton: 'button[data-mdc-dialog-button-default], [data-mdc-dialog-button-default], [data-mdc-dialog-action="accept"], [data-mdc-dialog-action="ok"]'
+        deleteButton: 'button[aria-label="Delete"], button[data-tooltip*="Delete" i], button[aria-label*="Trash" i], button[aria-label*="Move to trash" i], button[aria-label*="Move to bin" i], button[aria-label*="papelera" i], button[aria-label*="corbeille" i], button[aria-label*="löschen" i], button[aria-label*="cestino" i], button[aria-label*="lixeira" i], button[aria-label*="удалить" i], button[aria-label*="휴지통" i], button[aria-label*="ゴミ箱" i], button[aria-label*="回收站" i]'
     };
 
     const CONFIRM_TEXTS = [
-        'move to trash', 'move to bin', 'delete', 'ok', 'got it', 'continue', 'trash', 'bin', 'remove',
+        'move to trash', 'move to bin', 'delete', 'ok', 'got it', 'entendido', 'continue', 'trash', 'bin', 'remove',
         'mover a la papelera', 'eliminar', 'supprimer', 'placer dans la corbeille', 'löschen',
         'in den papierkorb verschieben', 'sposta nel cestino', 'elimina', 'mover para a lixeira',
         'excluir', 'verwijderen', 'удалить', 'в корзину', '삭제', '휴지통', '削除', 'ゴミ箱',
         '移至回收站', '移到废纸篓'
     ];
 
-    const CANCEL_TEXTS = [
+    const COMMON_SELECTORS = {
+        checkboxPrimary: '[role="checkbox"]',
+        checkboxFallback: '.ckGgle',
+        dialog: '[aria-modal="true"], [role="alertdialog"], [role="dialog"]',
+        dialogDefaultButton: 'button[data-mdc-dialog-button-default], [data-mdc-dialog-button-default], [data-mdc-dialog-action="accept"], [data-mdc-dialog-action="ok"]'
+    };
+
+    const COMMON_CANCEL_TEXTS = [
         'cancel', 'close', 'learn more', 'dismiss', 'back', 'keep', 'undo', 'no thanks',
         'cancelar', 'annuler', 'abbrechen', 'annulla', 'отмена', '취소', 'キャンセル', '取消'
     ];
 
-    if (window.__googlePhotosDeleteState && window.__googlePhotosDeleteState.isRunning) {
-        window.__googlePhotosDeleteState.isRunning = false;
-        if (window.__googlePhotosDeleteState.timerId) {
-            clearTimeout(window.__googlePhotosDeleteState.timerId);
-            window.__googlePhotosDeleteState.timerId = null;
+    function createRuntime({ stateKey, stopFnName, taskLabel, manageZoom = false, initialCounts = {} }) {
+        const prev = window[stateKey];
+        if (prev && typeof prev.stop === 'function') {
+            prev.stop({ silentIfStopped: true, reason: `Stopped previously active ${taskLabel} task.` });
+        } else if (prev && prev.isRunning) {
+            prev.isRunning = false;
         }
-        if (window.__googlePhotosDeleteState.originalZoom !== undefined) {
-            try { document.body.style.zoom = window.__googlePhotosDeleteState.originalZoom; } catch (e) {}
-        }
-        console.log('[INFO] Stopped previously active deletion task.');
-    }
 
-    const state = {
-        isRunning: true,
-        imageCount: 0,
-        cycleInProgress: false,
-        timerId: null,
-        originalZoom: document.body.style.zoom || ''
-    };
-    window.__googlePhotosDeleteState = state;
+        const activeTimers = new Set();
+        const activeCleanups = new Set();
 
-    if (autoZoom && typeof autoZoom === 'number') {
-        try {
-            document.body.style.zoom = String(autoZoom);
-            console.log(`[INFO] Auto-zoom set to ${Math.round(autoZoom * 100)}% to fit more photos per batch.`);
-        } catch (e) {}
-    }
+        const state = Object.assign({
+            isRunning: true,
+            cycleInProgress: false,
+            originalZoom: manageZoom ? (document.body.style.zoom || '') : undefined
+        }, initialCounts);
 
-    window.stopGooglePhotosDelete = function () {
-        if (state.isRunning) {
-            state.isRunning = false;
-            if (state.timerId) {
-                clearTimeout(state.timerId);
-                state.timerId = null;
-            }
-            if (state.originalZoom !== undefined) {
+        function restoreZoom() {
+            if (manageZoom && state.originalZoom !== undefined) {
                 try { document.body.style.zoom = state.originalZoom; } catch (e) {}
             }
-            console.log('[INFO] Google Photos Delete Tool stopped by user.');
-        } else {
-            console.log('[INFO] No active deletion task is currently running.');
         }
-    };
 
-    const wait = (ms) => new Promise((resolve) => {
-        if (!state.isRunning) return resolve();
-        state.timerId = setTimeout(() => {
-            state.timerId = null;
-            resolve();
-        }, ms);
-    });
+        function cleanupAll() {
+            for (const entry of [...activeTimers]) {
+                clearTimeout(entry.id);
+                activeTimers.delete(entry);
+                try { entry.resolve(); } catch (e) {}
+            }
+            for (const fn of [...activeCleanups]) {
+                activeCleanups.delete(fn);
+                try { fn(); } catch (e) {}
+            }
+            restoreZoom();
+        }
+
+        state.stop = function ({ silentIfStopped = false, reason } = {}) {
+            if (state.isRunning) {
+                state.isRunning = false;
+                cleanupAll();
+                console.log(reason ? `[INFO] ${reason}` : `[INFO] ${taskLabel} stopped by user.`);
+            } else if (!silentIfStopped) {
+                console.log(`[INFO] No active ${taskLabel} task is currently running.`);
+            }
+        };
+
+        state.finish = function () {
+            state.isRunning = false;
+            cleanupAll();
+        };
+
+        window[stateKey] = state;
+        window[stopFnName] = () => state.stop();
+
+        const wait = (ms) => new Promise((resolve) => {
+            if (!state.isRunning) return resolve();
+            const entry = { id: null, resolve };
+            entry.id = setTimeout(() => {
+                activeTimers.delete(entry);
+                resolve();
+            }, ms);
+            activeTimers.add(entry);
+        });
+
+        const registerCleanup = (fn) => {
+            activeCleanups.add(fn);
+            return () => activeCleanups.delete(fn);
+        };
+
+        return { state, wait, registerCleanup, restoreZoom };
+    }
 
     const isVisible = (element) => {
         if (!element) return false;
@@ -101,42 +125,178 @@
          element.getAttribute('data-tooltip') ||
          element.getAttribute('title') ||
          element.innerText ||
-         element.textContent || '').trim();
+         element.textContent || '').replace(/\s+/g, ' ').trim();
+
+    const escapeRegex = (str) => str.replace(/[.*+?^${}()|[\]\\]/g, '\\    /* @include common.js */');
+
+    const textMatchesLabel = (label, text) => {
+        const needle = text.toLowerCase();
+        if (!label || !needle) return false;
+        if (label === needle) return true;
+        if (/^[\p{Script=Latin}\p{Script=Cyrillic}\s]+$/u.test(needle)) {
+            try {
+                const pattern = new RegExp(`(?<![\\p{L}\\p{N}])${escapeRegex(needle)}(?![\\p{L}\\p{N}])`, 'u');
+                return pattern.test(label);
+            } catch (e) {
+                return label.includes(needle);
+            }
+        }
+        return label.includes(needle);
+    };
 
     const labelMatches = (element, texts) => {
         const label = labelOf(element).toLowerCase();
-        return texts.some((text) => label.includes(text.toLowerCase()));
+        return texts.some((text) => textMatchesLabel(label, text));
     };
 
-    const findVisibleDialog = () =>
-        [...document.querySelectorAll(SELECTORS.dialog)].find(isVisible) || null;
+    const findCheckboxes = () => {
+        const excluded = 'nav, aside, [role="navigation"], [role="dialog"], [role="alertdialog"]';
+        const primary = [...document.querySelectorAll(COMMON_SELECTORS.checkboxPrimary)]
+            .filter((el) => isVisible(el) && !el.closest(excluded));
+        if (primary.length > 0) return primary;
+        return [...document.querySelectorAll(COMMON_SELECTORS.checkboxFallback)].filter(isVisible);
+    };
 
-    async function waitForDialog(timeout) {
-        const deadline = Date.now() + timeout;
-        while (Date.now() < deadline && state.isRunning) {
-            const dialog = findVisibleDialog();
-            if (dialog) return dialog;
-            await wait(250);
-        }
-        return findVisibleDialog();
+    const findVisibleDialog = (dialogSelector = COMMON_SELECTORS.dialog) =>
+        [...document.querySelectorAll(dialogSelector)].find(isVisible) || null;
+
+    function waitForDialog(runtime, timeout, dialogSelector = COMMON_SELECTORS.dialog) {
+        if (!runtime.state.isRunning) return Promise.resolve(null);
+
+        const existing = findVisibleDialog(dialogSelector);
+        if (existing) return Promise.resolve(existing);
+
+        return new Promise((resolve) => {
+            let settled = false;
+            let observer = null;
+            let timerId = null;
+            let unregisterCleanup = null;
+
+            const finish = (result) => {
+                if (settled) return;
+                settled = true;
+                if (observer) {
+                    observer.disconnect();
+                    observer = null;
+                }
+                if (timerId !== null) {
+                    clearTimeout(timerId);
+                    timerId = null;
+                }
+                if (unregisterCleanup) {
+                    unregisterCleanup();
+                    unregisterCleanup = null;
+                }
+                resolve(runtime.state.isRunning ? result : null);
+            };
+
+            unregisterCleanup = runtime.registerCleanup(() => finish(null));
+
+            observer = new MutationObserver(() => {
+                if (!runtime.state.isRunning) {
+                    finish(null);
+                    return;
+                }
+                const dialog = findVisibleDialog(dialogSelector);
+                if (dialog) {
+                    finish(dialog);
+                }
+            });
+
+            const target = document.body || document.documentElement;
+            if (target) {
+                observer.observe(target, { childList: true, subtree: true, attributes: true });
+            }
+
+            timerId = setTimeout(() => {
+                finish(findVisibleDialog(dialogSelector));
+            }, timeout);
+        });
     }
 
-    function findConfirmButton(dialog) {
+    function waitForDialogClose(runtime, dialog, timeout = 5000) {
+        if (!runtime.state.isRunning || !dialog || !document.contains(dialog) || !isVisible(dialog)) {
+            return Promise.resolve();
+        }
+
+        return new Promise((resolve) => {
+            let settled = false;
+            let observer = null;
+            let timerId = null;
+            let unregisterCleanup = null;
+
+            const finish = () => {
+                if (settled) return;
+                settled = true;
+                if (observer) {
+                    observer.disconnect();
+                    observer = null;
+                }
+                if (timerId !== null) {
+                    clearTimeout(timerId);
+                    timerId = null;
+                }
+                if (unregisterCleanup) {
+                    unregisterCleanup();
+                    unregisterCleanup = null;
+                }
+                resolve();
+            };
+
+            unregisterCleanup = runtime.registerCleanup(finish);
+
+            observer = new MutationObserver(() => {
+                if (!runtime.state.isRunning || !document.contains(dialog) || !isVisible(dialog)) {
+                    finish();
+                }
+            });
+
+            const target = document.body || document.documentElement;
+            if (target) {
+                observer.observe(target, { childList: true, subtree: true, attributes: true });
+            }
+
+            timerId = setTimeout(finish, timeout);
+        });
+    }
+
+    function findConfirmButton(dialog, confirmTexts, cancelTexts = COMMON_CANCEL_TEXTS) {
         const candidates = [...dialog.querySelectorAll('button, [role="button"]')]
             .filter(isVisible)
-            .filter((button) => !labelMatches(button, CANCEL_TEXTS));
+            .filter((button) => !labelMatches(button, cancelTexts));
 
         const marked = candidates.find((button) => {
-            try { return button.matches(SELECTORS.dialogDefaultButton); } catch (e) { return false; }
+            try { return button.matches(COMMON_SELECTORS.dialogDefaultButton); } catch (e) { return false; }
         });
         if (marked) return marked;
 
-        for (const text of CONFIRM_TEXTS) {
+        for (const text of confirmTexts) {
+            const exactHit = candidates.find((button) => labelOf(button).toLowerCase() === text.toLowerCase());
+            if (exactHit) return exactHit;
+        }
+
+        for (const text of confirmTexts) {
             const hit = candidates.find((button) => labelMatches(button, [text]));
             if (hit) return hit;
         }
 
-        return candidates[candidates.length - 1] || null;
+        return null;
+    }
+
+    const runtime = createRuntime({
+        stateKey: '__googlePhotosDeleteState',
+        stopFnName: 'stopGooglePhotosDelete',
+        taskLabel: 'Google Photos Delete Tool',
+        manageZoom: true,
+        initialCounts: { imageCount: 0 }
+    });
+    const { state, wait, restoreZoom } = runtime;
+
+    if (autoZoom && typeof autoZoom === 'number') {
+        try {
+            document.body.style.zoom = String(autoZoom);
+            console.log(`[INFO] Auto-zoom set to ${Math.round(autoZoom * 100)}% to fit more photos per batch.`);
+        } catch (e) {}
     }
 
     async function waitForDeletionProgress(timeout = 10000) {
@@ -162,7 +322,7 @@
             if (!state.isRunning) return false;
 
             const timeout = index === 0 ? TIME_CONFIG.press_button_delay + 3000 : Math.min(TIME_CONFIG.press_button_delay, 1000);
-            const dialog = await waitForDialog(timeout);
+            const dialog = await waitForDialog(runtime, timeout);
 
             if (!state.isRunning) return false;
 
@@ -174,9 +334,9 @@
                 return true;
             }
 
-            const confirmButton = findConfirmButton(dialog);
+            const confirmButton = findConfirmButton(dialog, CONFIRM_TEXTS);
             if (!confirmButton) {
-                console.warn('[WARN] Modal detected but could not locate confirmation button. Please click manually if visible.');
+                console.warn('[WARN] Modal detected but could not locate a matching confirmation button (fail-closed). Please click manually if visible.');
                 return false;
             }
 
@@ -184,10 +344,10 @@
             confirmButton.click();
             console.log(`[INFO] Confirmed dialog ${index + 1}: "${buttonLabel}"`);
 
-            for (let i = 0; i < 20 && document.contains(dialog) && isVisible(dialog) && state.isRunning; i++) {
-                await wait(250);
-            }
+            await waitForDialogClose(runtime, dialog, 5000);
         }
+
+        if (!state.isRunning) return false;
 
         if (findVisibleDialog()) {
             console.warn('[WARN] A dialog is still open after handling confirmations. Retrying in next cycle.');
@@ -245,7 +405,7 @@
             let checkboxes = [];
 
             while (attemptCount < MAX_CHECKBOX_RETRIES && state.isRunning) {
-                checkboxes = [...document.querySelectorAll(SELECTORS.checkbox)].filter(isVisible);
+                checkboxes = findCheckboxes();
                 if (checkboxes.length > 0) break;
 
                 window.scrollBy(0, 300);
@@ -257,10 +417,7 @@
 
             if (checkboxes.length === 0) {
                 console.log('[INFO] No more photos found.');
-                state.isRunning = false;
-                if (state.originalZoom !== undefined) {
-                    try { document.body.style.zoom = state.originalZoom; } catch (e) {}
-                }
+                state.finish();
                 console.log(`[SUCCESS] Deletion completed! Total deleted: ${state.imageCount} photos. Tool exited.`);
                 return;
             }
@@ -270,10 +427,7 @@
                 const maxInt = parseInt(maxImageCount, 10);
                 const remaining = Math.max(0, maxInt - state.imageCount);
                 if (remaining <= 0) {
-                    state.isRunning = false;
-                    if (state.originalZoom !== undefined) {
-                        try { document.body.style.zoom = state.originalZoom; } catch (e) {}
-                    }
+                    state.finish();
                     console.log(`[SUCCESS] Target of ${maxImageCount} photos already reached. Tool exited.`);
                     return;
                 }
@@ -302,10 +456,7 @@
             console.log(`[INFO] Deleted batch. Total so far: ${state.imageCount} / ${targetDisplay}`);
 
             if (maxImageCount !== "ALL_PHOTOS" && state.imageCount >= parseInt(maxImageCount, 10)) {
-                state.isRunning = false;
-                if (state.originalZoom !== undefined) {
-                    try { document.body.style.zoom = state.originalZoom; } catch (e) {}
-                }
+                state.finish();
                 console.log(`[SUCCESS] Target of ${maxImageCount} photos deleted as requested. Tool exited.`);
                 return;
             }
@@ -313,6 +464,9 @@
             console.error('[ERROR] Unexpected error in deletion cycle:', err);
         } finally {
             state.cycleInProgress = false;
+            if (!state.isRunning) {
+                restoreZoom();
+            }
         }
     }
 
